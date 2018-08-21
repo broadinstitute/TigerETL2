@@ -1,0 +1,13 @@
+@(data: Seq[Array[String]])
+<html><body>
+    <link rel="stylesheet" href="/style/base.css" type="text/css">
+    <table class="indent ruleTable">
+        <tr>
+            @Html(data.head.map{ it => s"""<td class="ruleTableHeader">$it</td>""" }.mkString)
+        </tr>
+        @Html(data.drop(1).map{ "<tr>" + _.map{ it =>
+            s"""<td class="ruleTableCell">$it</td>""" }.mkString + "</tr>"
+        }.mkString)
+    </table>
+</body></html>
+

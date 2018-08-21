@@ -1,0 +1,33 @@
+@(data: Seq[Array[String]])
+<html><body>
+    <script>
+
+        function copyToClipboard() {
+            var res = '' ;
+            var form = document.forms[0] ;
+            for (var i = 0; i < form.elements.length; i++ ) {
+                if (form.elements[i].type == 'checkbox' && form.elements[i].checked == true) {
+                    res += form.elements[i].value + ',';
+                }
+            }
+            window.prompt("Copy to clipboard: Ctrl+C, Enter", res.substr(0, res.length-1));
+            return false;
+        }
+
+    </script>
+
+<form onsubmit="event.preventDefault(); return copyToClipboard();">
+    <link rel="stylesheet" href="/style/base.css" type="text/css">
+
+    <button id="demo">Select</button>
+
+    <table class="indent ruleTable">
+    @Html(data.map{ line =>
+        s"""<tr><td class="ruleTableCell"><input type="checkbox" name="id" value="${line(1)}"></td>""" +
+        line.map{ it => s"""<td class="ruleTableCell">$it</td>""" }.mkString +
+        "</tr>"
+    }.mkString)
+    </table>
+</form>
+</body></html>
+

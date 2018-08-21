@@ -1,0 +1,137 @@
+deployRegularAgent BspPlating destination=J:\TigerETL
+
+How to compile code from an external file at runtime?
+http://stackoverflow.com/questions/23874281/scala-how-to-compile-code-from-an-external-file-at-runtime
+https://github.com/twitter/util/tree/master
+http://stackoverflow.com/questions/12122939/generating-a-class-from-string-and-instantiating-it-in-scala-2-10/12123609#12123609
+
+
+https://github.com/spaced/scala-js-d3
+http://lihaoyi.github.io/hands-on-scala-js/#GettingStarted
+
+http://databoss.starschema.net/github-tableau-web-data-connector/
+http://databoss.starschema.net/tableau-web-data-connector-for-jive-in-five-lines-of-code/
+
+multipart/related mime message with large files
+https://groups.google.com/forum/#!topic/spray-user/oS0GNXHSMJU
+
+
+
+sealed trait Free[F[_],A]
+case class Return[F[_],A](a: A) extends Free[F,A]
+case class Suspend[F[_],A](s: F[Free[F, A]]) extends Free[F,A]
+
+
+type IO[F[_],A] = Free[({type λ[α] = (F[I], I => α) forSome {type I}})#λ, A]
+
+
+
+C:\Users\atanas\My Apps>curl -o c:\temp\Project_IS2.xml -u analytics:analytics -k -X GET -H "Content-Type: application/xml" https://labopsjira.broadinstitute.org:8443/sr/jira.issueviews:searchrequest-xml/temp/SearchRequest.xml?jqlQuery=project+%3D+%22IS%22
+% Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+100 37.8M    0 37.8M    0     0   299k      0 --:--:--  0:02:09 --:--:--  327k
+
+import scala.io.Source
+import scala.xml.pull._
+import analytics.tiger.experiments
+
+val src = Source.fromFile("""c:\temp\Project_IS2.xml""").getLines
+val er = new XMLEventReader(src)
+while (er.next match { case EvElemStart(_,"channel",_,_) => false case _ => true }) Unit
+
+
+val str = experiments.getNodeStream(er).filter(_.label=="item")
+str.take(20).foreach(println)
+str.foreach(println)
+
+
+
+
+experiments.extractNode(er)
+
+val itemElem = er.dropWhile{ case EvElemStart(_,"item", attr,_) => false case _ => true }
+
+.foreach(println)
+
+new scala.xml.Elem(null, "item", scala.xml.Null, scala.xml.TopScope, false, new Text("test"))
+new scala.xml.Elem(null, "item", scala.xml.Null, scala.xml.TopScope, false, Seq(new Text("test")): _*)
+
+
+
+while (src.hasNext && src.next.indexOf("/build-info") == -1) Unit
+
+
+
+val src = Source.fromFile("""c:\temp\Project_IS2.xml""").getLines
+
+while (src.next.indexOf("<item>") == -1) Unit
+while ({ val line = src.next ; println(line); line.indexOf("</item>") == -1}) Unit
+
+scala.xml.XML.load(new ByteArrayInputStream(res20.getBytes("utf-8")))
+
+
+
+val req = url("https://tableau-beta.broadinstitute.org/api/2.1/auth/signin").POST << """<tsRequest><credentials name="atanas" password="???"><site contentUrl="" /></credentials></tsRequest>"""
+val res = Http(req OK as.xml.Elem).apply()
+<tsResponse xsi:schemaLocation="http://tableau.com/api http://tableau.com/api/ts-api-2.1.2.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://tableau.com/api"><credentials token="Otflr8ZLM7EVsxP4zF37v2E0hBOpfNxP"><site contentUrl="" id="ec7802ff-dcd6-40e6-b001-41eb3a13cdc5"/><user id="98ebc908-023c-4f7f-8036-e8b2080434b8"/></credentials></tsResponse>
+
+val (token,site_id) = ((res \\ "credentials" \ "@token").text, (res \\ "site" \ "@id").text)
+token: String = Otflr8ZLM7EVsxP4zF37v2E0hBOpfNxP
+site_id: String = ec7802ff-dcd6-40e6-b001-41eb3a13cdc5
+
+
+
+--6691a87289ac461bab2c945741f136e6
+Content-Disposition: name="request_payload"
+Content-Type: text/xml
+
+
+<tsRequest>
+  <datasource name="Postal-rates">
+    <project id="421ac869-a43d-11e5-8a70-331ceffba0df"/>
+  </datasource>
+</tsRequest>
+--6691a87289ac461bab2c945741f136e6
+Content-Disposition: name="tableau_datasource"; filename="usps-rates.tde"
+Content-Type: application/octet-stream
+
+content here
+--6691a87289ac461bab2c945741f136e6--
+
+
+
+def getProjects(token: String, site_id: String) = {
+  val req = url(s"""https://tableau-beta.broadinstitute.org/api/2.1/sites/$site_id/projects""").addHeader("X-Tableau-Auth", token)
+  val res = Http(req OK as.xml.Elem).apply()
+  (res \\ "project").map(it => (it \ "@name").text -> (it \ "@id").text).toMap
+}
+
+def publishDatasource(token: String, site_id: String, boundary_string: String, project_id: String) = {
+  val str =
+    s"""--$boundary_string
+Content-Disposition: name="request_payload"
+Content-Type: text/xml
+
+<tsRequest>
+  <datasource name="Postal-rates">
+    <project id="$project_id"/>
+  </datasource>
+</tsRequest>
+--$boundary_string
+Content-Disposition: name="tableau_datasource"; filename="usps-rates.tde"
+Content-Type: application/octet-stream
+
+"""
+//<content here>
+//--$boundary_string--""".stripMargin
+
+  println(str)
+  val req = url(s"""https://tableau-beta.broadinstitute.org/api/2.1/sites/$site_id/datasources?overwrite=true""").addHeader("X-Tableau-Auth", token).addHeader("Content-Type", s"""multipart/mixed; boundary=$boundary_string""").addHeader("Content-Length",str.size.toString).POST << str <<< new File("c:\\temp\\Jql_Extract_1455219180000.tde") << s"""--$boundary_string--"""
+  Http(req OK as.xml.Elem).apply()
+}
+
+publishDatasource(token, site_id, "6691a87289ac461bab2c945741f136e6", "42186702-a43d-11e5-8a68-5b0ed097c6b1")
+
+https://github.com/jrudolph/json-lenses
+https://gist.github.com/jrudolph/4077644
+https://github.com/spray/spray-json

@@ -1,0 +1,63 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><meta http-equiv="Cache-Control" content="no-store">
+<title>Jira Web Connector</title>
+<script src="https://connectors.tableau.com/libs/tableauwdc-1.1.1.js" type="text/javascript"></script>
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js" type="text/javascript"></script>
+<script type="text/javascript">
+    (function() {
+
+        function buildJiraUri(domain, username, password, jqlQuery, fields) {
+            return 'http://analytics-etl:8090/api/JiraWebConnector?domain=' + domain + '&jqlQuery=' + jqlQuery + '&fields=' + fields + "&username=" + encodeURIComponent(username) + "&password=" + encodeURIComponent(password) ;
+        }
+
+        var myConnector = tableau.makeConnector();
+
+        myConnector.getColumnHeaders = function() {
+            var connectionData = JSON.parse(tableau.connectionData);
+            $.ajax({
+                url: buildJiraUri(
+                    connectionData.domain,
+                    connectionData.username,
+                    connectionData.password,
+                    connectionData.jqlQuery,
+                    connectionData.fields),
+                dataType: 'json',
+                success: function (data) {
+                    tableau.headersCallback(data.fieldNames, data.fieldTypes);
+                    localStorage.setItem('mydata', JSON.stringify(data))
+                },
+                error: function (xhr, ajaxOptions, thrownError) {
+                    var msg = "Connection error: " + xhr.responseText + "\n" + thrownError;
+                    tableau.log(msg);
+                    tableau.abortWithError(msg);
+                }
+            });
+        }
+
+        myConnector.getTableData = function(lastRecordToken) {
+            var dataToReturn = [];
+            var mydata = JSON.parse(localStorage.getItem('mydata'));
+            var fieldNames = mydata.fieldNames;
+            var issues = mydata.results;
+            for (ii = 0; ii < issues.length; ++ii) {
+                var entry = {}
+                for (jj = 0; jj < fieldNames.length; ++jj) { entry[fieldNames[jj]] = issues[ii][jj] }
+                dataToReturn.push(entry);
+            }
+            localStorage.clear();
+            tableau.dataCallback(dataToReturn, lastRecordToken, false);
+        }
+        tableau.registerConnector(myConnector);
+    })();
+
+    tableau.connectionName = "Data for jqlQuery";
+    tableau.connectionData = JSON.stringify({
+        'domain'  : 'DOMAIN',       // labopsjira, gpinfojira or broadinstitute.atlassian.net
+        'jqlQuery': 'JQL_QUERY',    // must be URLEncoded
+        'fields'  : 'timestamp,summary,type,status,resolution,created:Date,resolved:Date',
+        'username': '', // leave blank
+        'password': ''  // leave blank
+    });
+    setTimeout(function () { tableau.submit(); }, 1000);
+</script>
+</head>
+</html>

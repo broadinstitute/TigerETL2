@@ -1,0 +1,60 @@
+@(domain: String, jqlQuery: String, fields: String, encodedUrl: String, rawXmlAllUrl: String, comments: String, wdcsql: String, regexHtmlTable: String, recordsToPreview: Int)
+<html><body><form>
+    <link rel="stylesheet" href="/style/base.css" type="text/css">
+
+    <table>
+        <tr><td>Code Assistant<br><img src=/images/codeAssistant.jpg></td><td>
+            <table width="100%"><tr>
+                <td>
+                    Show all fields from
+                    <a href="/api/v2/fieldsPicker?mode=metadata&domain=labopsjira">labopsjira</a><a href="/api/v2/fieldsPicker?mode=db&domain=labopsjira">(via db)</a>,
+                    <a href="/api/v2/fieldsPicker?mode=metadata&domain=gpinfojira">gpinfojira</a><a href="/api/v2/fieldsPicker?mode=db&domain=gpinfojira">(via db)</a> or
+                    <a href="/api/v2/fieldsPicker?mode=metadata&domain=broadinstitute.atlassian.net">broadinstitute.atlassian.net</a>
+                    <a href="/api/v2/fieldsPicker?mode=metadata&domain=labopsjiradev">labopsjiradev</a>
+                </td>
+                <td>
+                    <a href="http://www.url-encode-decode.com/">Url encoder/decoder</a>
+                </td>
+                <td>
+                    <a href="https://labopsconfluence.broadinstitute.org/pages/viewpage.action?pageId=33390753">Documentation</a>
+                </td>
+                <td>RegEx(
+                    <a href="http://docs.oracle.com/javase/7/docs/api/java/util/regex/Pattern.html">Doc</a>,
+                    <a href="https://www.cheatography.com/davechild/cheat-sheets/regular-expressions/">CheetSheat</a>,
+                    <a href="http://www.ocpsoft.org/tutorials/regular-expressions/java-visual-regex-tester/">Tester</a>
+                    )
+                </td>
+            </tr></table>
+
+            Start off with pre-existing normalized Url: <input type="text" name="url" value="" size="40" /> <input name ="action" type="submit" value="Decode"><br>
+            <b>Domain</b> :
+            <select name ="domain">
+                @{ Seq("labopsjira", "labopsjiradev", "gpinfojira", "broadinstitute.atlassian.net").map(it =>
+                    Html(s"""<option value="$it" ${if (domain == it) "selected" else ""}>$it</option>""")
+                )}
+            </select> <br>
+            <b>Plain jqlQuery</b>: <input type="text" name="jqlQuery" value="@{jqlQuery}" size="130" /> <br>
+            <b>Fields</b>:   <input type="text" name="fields" value="@{fields}" size="140" /> <br><br>
+            <input name ="action" type="submit" value="Analyze">
+            Records to preview:
+            <select name ="recordsToPreview">
+                @{ Seq(0, 10, 20, 50, 100, 200, 500).map(it =>
+                    Html(s"""<option value="$it" ${if (it == recordsToPreview) "selected" else ""}>$it</option>""")
+                )}
+            </select>
+
+        </td></tr>
+
+    </table>
+<br>
+    Get insights into <a href="@rawXmlAllUrl">JIRA's internal representation</a> of this jqlQuery (your browser have to be already logged into JIRA) Or <a href="/api/v2/fieldsPicker?mode=rawXml&domain=labopsjira&url=@{java.net.URLEncoder.encode(rawXmlAllUrl,"UTF-8")}">cherry-pick</a> the fields manually.<br>
+    @{Html(comments)} <br>
+
+    <b>Normalized Url:</b> <a href="@encodedUrl">@encodedUrl</a><br><br>
+    <b>Double encoded Url (useful for script files):</b> <input type="text" name="fields" value="@{Html(encodedUrl.replaceAllLiterally("%","%%"))}" size="140" /><br><br>
+
+    <b>WebDataConnector SQL (over DB):</b>
+    <textarea rows="6" cols="140">@wdcsql</textarea>
+    @Html(regexHtmlTable)
+
+</form></body></html>

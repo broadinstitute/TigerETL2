@@ -1,0 +1,88 @@
+@import analytics.tiger.api
+@import org.joda.time.format.DateTimeFormat
+@import org.joda.time.DateTime
+
+@(agents: List[String], statuses: Seq[Html], pickedAgent: String, group_by_agent: Boolean, show_command:Boolean ,params: Map[String,List[String]], runs: List[(String, String, String, String, String, String, Html,String)], activity: String)
+<html>
+    <head>
+        <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+        <script type="text/javascript">
+                google.charts.load('current', {'packages':['corechart']});
+                google.charts.setOnLoadCallback(drawChart);
+                function drawChart() {
+
+                    var data = google.visualization.arrayToDataTable([
+                        ['Agent', 'Activity'],
+                         @Html(activity)
+                    ]);
+
+                    var options = {
+                        title: '24h ETL Activities'
+                    };
+
+                    var chart = new google.visualization.PieChart(document.getElementById('piechart'));
+
+                    chart.draw(data, options);
+                }
+        </script>
+    </head>
+    <body>
+    <form>
+    <a href="/etl_runs">Home</a>
+Server started at @{analytics.tiger.api.ledger.start.toString(DateTimeFormat.forPattern("MMM-dd-yyyy HH:mm:ss"))}
+<a href="http://analytics-etl:8090/peekattable/COGNOS.running_sqls_all">Running SQLs</a>
+<br>
+@{if (analytics.tiger.api.ledger.shuttingDown) " Shutdown initiated."}
+        <table>
+            <tr><td><img src=/images/PoweredBy.jpg></td><td><a href="http://analytics.broadinstitute.org:8080/"><img src=/images/Spark.jpg></a></td></tr>
+        </table>
+    <table>
+        <tr><td>
+    <table border="1" bordercolor="#000000">
+        @statuses
+        <tr><td>--------------</td></tr>
+        <tr><td><input type="checkbox" name="show_command" value="on" @{if (show_command) "checked"}>Show command</td></tr>
+        <tr><td><input type="checkbox" name="group_by_agent" value="on" @{if (group_by_agent) "checked"}>Group by agent</td></tr>
+    </table></td>
+        <td><div id="piechart" style="width: 900px; height: 300px;"></div></td></tr>
+    </table>
+
+    <select name="agent">
+        @for(ag <- agents) { <option value="@{ag}" @{if (ag==pickedAgent) "selected"}>@{ag}</option> }
+    </select>
+    <input name ="action" type="submit" value="Refresh">
+    <table border="1" bordercolor="#000000" width="100%" cellpadding="5" cellspacing="3">
+    <tr><td>AGENT_NAME</td><td>START_TIME</td><td>END_TIME</td><td>DURATION</td><td>STATUS</td><td>DETAILS</td>
+        @{if (show_command) Html("<td>COMMAND</td>")}
+    </tr>
+    @for((color,agent_name, start_time, end_time, duration, status, details, command) <- runs) {
+        <tr style="background-color: @{color}">
+        <td>
+            <img src="/images/@{
+                if (agent_name.indexOf("analytics.tiger.agents.spark.") > -1) "Spark.jpg"
+                else if (agent_name.indexOf("analytics.tiger.JqlTableauExtractService")> -1) "jira.png"
+                else if (agent_name.indexOf("analytics.tiger.") > -1) "Tiger.jpg"
+                else if (agent_name.indexOf(".plsql.")> -1) "plsql.jpg"
+                else "Chicken.jpg"
+            }" height=20 width=20>
+            @Html(if (details.body.startsWith("V3")) "V3" else "")
+            <a href="/etl_runs?agent=@{agent_name}">@{agent_name}</a>
+            @{
+                if (agent_name == "analytics.tiger.zombieCheckerAgent" && status == "Failed") Html("""<img src="/images/Zombie.gif" height=70 width=70>""")
+                else if (agent_name == "analytics.tiger.HeartBeatAgent" && status == "Failed") Html("""<img src="/images/BrokenHeart.gif" height=70 width=70>""")
+            }
+        </td>
+        <td>@{start_time}</td>
+        <td>@{end_time}</td>
+        <td>@{duration}</td>
+        <td>@{status}
+        @{
+            if(color == "orange") Html("""<img src="/images/Warning.gif" height=70 width=70>""")
+        }
+        </td>
+        <td>@{details}</td>
+        @{if (show_command) Html(s"<td>$command</td>")}
+        </tr>
+    }
+    </table>
+</form></body></html>

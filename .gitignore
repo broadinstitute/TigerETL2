@@ -1,0 +1,10 @@
+*.iml
+*.class
+*.cache
+.history
+export
+.idea
+target
+TigerETL-sources.jar
+tigeretl-assembly*.jar
+.DS_Store
