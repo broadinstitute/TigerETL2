@@ -34,61 +34,40 @@ object Orsp {
     val result = for (
       res1 <- Try{
         sql"DELETE FROM ANALYTICS.ORSP_PROJECT".update().apply()
-        val dataIterator = urlToDF("https://orsp.broadinstitute.org/api/projects")
+        val data = urlToDF("https://orsp.broadinstitute.org/api/projects")
           .filter(_.getAs[String]("type") != "Consent Group")
-          .map(row => Array(row.getAs[String]("key"), row.getAs[String]("label"), row.getAs[String]("type"), row.getAs[String]("status"), row.getAs[String]("description"), row.getAs[String]("url")))
-          .toLocalIterator()
-        var count = 0
-        val stat = sql"INSERT INTO ANALYTICS.ORSP_PROJECT VALUES(?,?,?,?,?,?)"
-        while (dataIterator.hasNext) {
-          stat.bind(dataIterator.next(): _*).update().apply()
-          count = count + 1
-        }
-        s"ANALYTICS.ORSP_PROJECT: $count"
+          .map(row => Seq(row.getAs[String]("key"), row.getAs[String]("label"), row.getAs[String]("type"), row.getAs[String]("status"), row.getAs[String]("description"), row.getAs[String]("url")))
+          .collect()
+        data.foreach(sql"INSERT INTO ANALYTICS.ORSP_PROJECT VALUES(?,?,?,?,?,?)".bind(_: _*).update().apply())
+        s"ANALYTICS.ORSP_PROJECT: ${data.size}"
       };
-
       res2 <- Try{
         sql"DELETE FROM ANALYTICS.ORSP_CONSENT".update().apply()
-        val dataIterator = urlToDF("https://orsp.broadinstitute.org/api/consents")
+        val data = urlToDF("https://orsp.broadinstitute.org/api/consents")
           .map(row => Seq(row.getAs[String]("key"), row.getAs[String]("label"), row.getAs[String]("dataUseRestriction"), row.getAs[String]("url")))
-          .toLocalIterator()
-        var count = 0
-        val stat = sql"INSERT INTO ANALYTICS.ORSP_CONSENT VALUES(?,?,?,?)"
-        while (dataIterator.hasNext) {
-          stat.bind(dataIterator.next(): _*).update().apply()
-          count = count + 1
-        }
-        s"ANALYTICS.ORSP_CONSENT: $count"
-      }
-/*
+          .collect()
+        data.foreach(sql"INSERT INTO ANALYTICS.ORSP_CONSENT VALUES(?,?,?,?)".bind(_: _*).update().apply())
+        s"ANALYTICS.ORSP_CONSENT: ${data.size}"
+      };
       res3 <- Try{
         sql"DELETE FROM ANALYTICS.ORSP_SAMPLE_COLLECTION".update().apply()
         val df = urlToDF("https://orsp.broadinstitute.org/api/samples")
 
-        val data1Iterator = df
+        val data1 = df
           .map(row => Seq(row.getAs[String]("sampleCollection"), row.getAs[String]("sampleCollectionName")))
           .distinct()
-          .toLocalIterator()
-        var count1 = 0
-        while (data1Iterator.hasNext) {
-          sql"INSERT INTO ANALYTICS.ORSP_SAMPLE_COLLECTION VALUES(?,?)".bind(data1Iterator.next(): _*).update().apply()
-          count1 = count1 + 1
-        }
+          .collect()
+        data1.foreach(sql"INSERT INTO ANALYTICS.ORSP_SAMPLE_COLLECTION VALUES(?,?)".bind(_: _*).update().apply())
 
         sql"DELETE FROM ANALYTICS.ORSP_SAMPLE_STAR".update().apply()
-        val data2Iterator = df
+        val data2 = df
           .map(row => Seq(row.getAs[String]("sampleCollection"), row.getAs[String]("project"), row.getAs[String]("consent")))
-          .toLocalIterator()
-        var count2 = 0
-        while (data2Iterator.hasNext) {
-          sql"INSERT INTO ANALYTICS.ORSP_SAMPLE_STAR VALUES(?,?,?)".bind(data2Iterator.next(): _*).update().apply()
-          count2 = count2 + 1
-        }
+          .collect()
+        data2.foreach(sql"INSERT INTO ANALYTICS.ORSP_SAMPLE_STAR VALUES(?,?,?)".bind(_: _*).update().apply())
 
-        s"ANALYTICS.ORSP_SAMPLE_COLLECTION: $count1\nANALYTICS.ORSP_SAMPLE_STAR: $count2"
+        s"ANALYTICS.ORSP_SAMPLE_COLLECTION: ${data1.size}\nANALYTICS.ORSP_SAMPLE_STAR: ${data2.size}"
       }
-*/
-    ) yield s"$res1\n$res2\nres3"
+    ) yield s"$res1\n$res2\n$res3"
     Seq((delta, result match {
       case Success(s) => Right(s)
       case Failure(e) => Left(etlMessage(e.getMessage))
