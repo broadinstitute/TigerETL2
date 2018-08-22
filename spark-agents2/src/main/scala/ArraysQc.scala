@@ -51,6 +51,7 @@ object ArraysQc {
     }
 
     val envString = args(0)
+    val timeout = Try(args(1).toInt).getOrElse(180)
     val env = utils.config.getConfig(s"metricsCloud.$envString")
     val tableFactory = sparkutils.tableDF(utils.configToMap(env.getConfig("connectInfo")))
     val agentName = env.getString("agentName")
@@ -99,7 +100,7 @@ object ArraysQc {
       import scala.concurrent.ExecutionContext.Implicits.global
       val res = Seq(aqc_main, aqc_fingerprint, aqc_gt_concordance, aqc_controlcodes, aqc_blacklisting).foldLeft(Right(""): Either[etlMessage,String]) { case (acc, task) => acc match {
         case Left(_) => acc
-        case Right(msg) => Await.result(Future(task(delta)(session)), 5 minutes) match {
+        case Right(msg) => Await.result(Future(task(delta)(session)), timeout minutes) match {
           case Success(str) => Right(msg + "\n" + str)
           case Failure(e) => Left(etlMessage(msg + "\n" + e.getMessage))
         }
